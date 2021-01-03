@@ -2,11 +2,11 @@ const {
   getCategoryModel,
   getCategoryModelById,
   postCategoryModel,
-  deleteCategoryModel
+  deleteCategoryModel,
+  getCategoryNameById
 } = require('../model/category')
 const { getProductByIdModel } = require('../model/product')
 const {
-  getOrderByhistory,
   getDataOrderModel,
   postDataOrderModel
 } = require('../model/detailOrder')
@@ -16,6 +16,20 @@ const redis = require('redis')
 const client = redis.createClient()
 
 module.exports = {
+  getCategoryIdName: async (request, response) => {
+    try {
+      const { id } = require.params
+      const result = await getCategoryNameById(id)
+      client.set(
+        `getcategory: ${JSON.stringify(request.query)}`,
+        3600,
+        JSON.stringify(result)
+      )
+      return helper.response(response, 200, 'Success Get category', result)
+    } catch (error) {
+      return helper.response(response, 400, 'Bad Request', error)
+    }
+  },
   getCategory: async (request, response) => {
     try {
       const result = await getCategoryModel()
@@ -32,7 +46,7 @@ module.exports = {
   getCategoryId: async (request, response) => {
     try {
       const { id } = request.params
-      const result = await getCategoryModelById(id)
+      const result = await getCategoryNameById(id)
       return helper.response(
         response,
         200,
@@ -89,7 +103,7 @@ module.exports = {
       for (let i = 0; i < request.body.orders.length; i++) {
         let { product_id, order_qty } = request.body.orders[i]
         const product = await getProductByIdModel(product_id)
-        if (product[0] == undefined) {
+        if (product[0] === undefined) {
           return helper.response(response, 400, 'Produknya jatoh di jalan')
         }
         console.log(product[0].product_price)

@@ -8,6 +8,17 @@ module.exports = {
       })
     })
   },
+  getCategoryNameById: (id) => {
+    return new Promise((resolve, reject) => {
+      connection.query(
+        'SELECT * FROM product WHERE category_id =?',
+        id,
+        (error, result) => {
+          !error ? resolve(result) : reject(new Error(error))
+        }
+      )
+    })
+  },
   getCategoryModelById: (id) => {
     return new Promise((resolve, reject) => {
       connection.query(

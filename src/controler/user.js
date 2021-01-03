@@ -1,8 +1,82 @@
 const bcrypt = require('bcrypt')
 const helper = require('../helper/response')
 const jwt = require('jsonwebtoken')
-const { registerUserModel, loginCheckModel } = require('../model/user')
+const fs = require('fs')
+const {
+  registerUserModel,
+  loginCheckModel,
+  getUserModel,
+  getUserByIdModel,
+  patchUsertModel
+} = require('../model/user')
+
 module.exports = {
+  getUserById: async (request, response) => {
+    try {
+      const { id } = request.params
+      const result = await getUserByIdModel(id)
+      return helper.response(
+        response,
+        200,
+        'get Data history suscces full',
+        result
+      )
+    } catch (error) {
+      return helper.response(response, 400, 'Bad Request', error)
+    }
+  },
+  getUser: async (request, response) => {
+    try {
+      const result = await getUserModel()
+      return helper.response(
+        response,
+        200,
+        'get Data history suscces full',
+        result
+      )
+    } catch (error) {
+      return helper.response(response, 400, 'Bad Request', error)
+    }
+  },
+  patchUser: async (request, response) => {
+    try {
+      console.log(request)
+      const { id } = request.params
+      const {
+        user_name,
+        user_lastname,
+        user_birth,
+        user_gender,
+        user_phone,
+        user_address,
+        user_email
+      } = request.body
+      const setData = {
+        user_name,
+        user_lastname,
+        user_birth,
+        user_gender,
+        user_phone,
+        user_address,
+        user_img: request.file === undefined ? '' : request.file.filename,
+        user_email,
+        user_role: 2,
+        user_created_at: new Date()
+      }
+      const checkUser = await getUserByIdModel(id)
+      fs.unlink(`uploads/user/${checkUser[0].user_img}`, async (error) => {
+        if (error) return helper.response(response, 400, 'delete gagal')
+      })
+      if (checkUser.length > 0) {
+        const result = await patchUsertModel(id, setData)
+        return helper.response(response, 200, 'DataUpdated', result)
+      } else {
+        return helper.response(response, 404, `Data Not Found By Id ${id}`)
+      }
+    } catch (error) {
+      return helper.response(response, 400, 'Data Failed Update', error)
+    }
+  },
   registerUser: async (request, response) => {
     try {
       console.log(request.body)
@@ -13,7 +87,6 @@ module.exports = {
         user_gender,
         user_phone,
         user_address,
-        // user_img,
         user_email,
         user_password
       } = request.body
@@ -26,7 +99,7 @@ module.exports = {
         user_gender,
         user_phone,
         user_address,
-        // user_img,
+        user_img: request.file === undefined ? '' : request.file.filename,
         user_email,
         user_role: 2,
         user_password: encryptPassword,
@@ -62,6 +135,7 @@ module.exports = {
   loginUser: async (request, response) => {
     try {
       const { user_email, user_password } = request.body
+      console.log(request.body)
       // condition 1 pengecekan apakah email ada di database
       if (request.body.user_email === '') {
         return helper.response(response, 400, 'Insert email Please :)')
@@ -69,6 +143,7 @@ module.exports = {
         return helper.response(response, 400, 'Insert Password Please :)')
       } else {
         const checkDataUser = await loginCheckModel(user_email)
+        console.log(checkDataUser)
         if (checkDataUser.length > 0) {
           // proses check password  sesuai atau tidak
           const checkPassword = bcrypt.compareSync(
@@ -78,11 +153,17 @@ module.exports = {
           console.log(checkPassword)
           if (checkPassword) {
             // set jwt disini
-            const { user_id, user_name, user_email } = checkDataUser[0]
+            const {
+              user_id,
+              user_name,
+              user_email,
+              user_role
+            } = checkDataUser[0]
             const paylot = {
               user_id,
               user_name,
-              user_email
+              user_email,
+              user_role
             }
             const token = jwt.sign(paylot, 'RAHASIA', { expiresIn: '4h' })
             const result = { ...paylot, token }

@@ -1,12 +1,13 @@
 const router = require('express').Router()
 const { authorization, authorizationAdmin } = require('../middleware/auth')
 const {
+  getVoucher,
+  getdata,
   getProduct,
   getProductById,
   postProduct,
   patchProduct,
   deleteProduct,
-  // getVoucher,
   postVoucher,
   deleteVoucher
 } = require('../controler/product')
@@ -18,15 +19,22 @@ const {
 const uploadImage = require('../middleware/multer')
 
 // product
-router.get('/', authorization, getProductRedis, getProduct) // http://localhost:3000/product
-router.get('/:id', authorization, getProductByIdRedis, getProductById) // http://localhost:3000/product/1
-router.post('/', authorization, uploadImage, postProduct)
-router.patch('/:id', authorizationAdmin, clearDataProductRedis, patchProduct)
+router.get('/dashboard', getdata)
+router.get('/', authorizationAdmin, getProductRedis, getProduct)
+router.get('/:id', authorizationAdmin, getProductByIdRedis, getProductById)
+router.post('/', authorizationAdmin, uploadImage, postProduct)
+router.patch(
+  '/:id',
+  authorizationAdmin,
+  clearDataProductRedis,
+  uploadImage,
+  patchProduct
+)
 router.delete('/:id', authorization, deleteProduct)
 
 // voucher
-// router.get('/:voucher', getVoucher)
+router.get('/voucher/', getVoucher)
 router.post('/:voucher', authorizationAdmin, postVoucher)
-router.delete('/:voucher/:id', authorizationAdmin, deleteVoucher)
+router.delete('/voucher/:id', authorizationAdmin, deleteVoucher)
 
 module.exports = router

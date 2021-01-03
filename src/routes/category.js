@@ -8,16 +8,18 @@ const {
   deleteCategory,
   getOrder,
   postOrder,
-  getHistory
+  getHistory,
+  getCategoryIdName
 } = require('../controler/category')
 
 // params
-router.get('/', authorization, getCategoryRedis, getCategory) // http://localhost:3000/product
-router.get('/:id', authorization, getCategoryId) // http://localhost:3000/product/1
+router.get('/', authorizationAdmin, getCategoryRedis, getCategory)
+router.get('/:id', authorizationAdmin, getCategoryId)
+router.get('//:id', authorizationAdmin, getCategoryIdName)
 router.post('/', authorizationAdmin, postCategory)
 router.delete('/:id', authorizationAdmin, deleteCategory)
 // order
 router.get('/:order', authorization, getOrder)
 router.post('/:order', authorization, postOrder)
-router.get('/:history', authorization, getHistory)
+router.get('/history', authorization, getHistory)
 module.exports = router

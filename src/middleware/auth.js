@@ -4,6 +4,7 @@ const helper = require('../helper/response')
 module.exports = {
   authorization: (request, response, next) => {
     let token = request.headers.authorization
+    console.log(token)
     token = token.split(' ')[1]
     jwt.verify(token, 'RAHASIA', (error, result) => {
       if (
@@ -30,6 +31,7 @@ module.exports = {
         console.log(error)
         return helper.response(response, 400, error.message)
       } else {
+        console.log(result)
         // add condition can admin
         if (result.user_role === 1) {
           request.token = result

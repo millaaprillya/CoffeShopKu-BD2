@@ -9,12 +9,12 @@ const {
   getVoucherModel,
   deleteVoucherModel
 } = require('../model/product')
+const { getDataModel, getDataModelProduct } = require('../model/dashboard')
 const helper = require('../helper/response')
-const qs = require('querystring')
 const redis = require('redis')
 const client = redis.createClient()
 const fs = require('fs')
-const response = require('../helper/response')
+const dashboard = require('../model/dashboard')
 
 module.exports = {
   getProduct: async (request, response) => {
@@ -63,6 +63,7 @@ module.exports = {
   },
   getProductById: async (request, response) => {
     try {
+      console.log(request.params)
       const { id } = request.params
       const result = await getProductByIdModel(id)
       if (result.length > 0) {
@@ -122,35 +123,41 @@ module.exports = {
       return helper.response(response, 400, 'Bad Request', error)
     }
   },
-  patchProduct: async (req, res) => {
+  patchProduct: async (request, response) => {
+    const { id } = request.params
     try {
-      console.log(req)
-      const { id } = req.params
       const {
         category_id,
         product_name,
         product_price,
+        product_size,
+        product_image,
+        product_list,
         product_status
-      } = req.body
+      } = request.body
+      console.log(request.body.product_name)
       const setData = {
         category_id,
         product_name,
         product_price,
-        product_updated_at: new Date(),
+        product_size,
+        product_list,
+        product_image: request.file === undefined ? '' : request.file.filename,
+        product_created_at: new Date(),
         product_status
       }
       const checkId = await getProductByIdModel(id)
-      fs.unlink(`./uploads/${checkId[0].product_image}`, async (error) => {
+      fs.unlink(`uploads/${checkId[0].product_image}`, async (error) => {
         if (error) return helper.response(response, 400, 'delete gagal')
       })
       if (checkId.length > 0) {
         const result = await patchProductModel(id, setData)
-        return helper.response(res, 200, 'DataUpdated', result)
+        return helper.response(response, 200, 'DataUpdated', result)
       } else {
-        return helper.response(res, 404, `Data Not Found By Id ${id}`)
+        return helper.response(response, 404, `Data Not Found By Id ${id}`)
       }
     } catch (error) {
-      return helper.response(res, 400, 'Data Failed Update', error)
+      return helper.response(response, 400, 'Data Failed Update', error)
     }
   },
   deleteProduct: async (request, response) => {
@@ -175,7 +182,6 @@ module.exports = {
   postVoucher: async (request, response) => {
     try {
       const {
-        voucher_id,
         voucher_name,
         voucher_diskon,
         voucher_list,
@@ -183,7 +189,6 @@ module.exports = {
       } = request.body
 
       const setData = {
-        voucher_id,
         voucher_name,
         voucher_diskon,
         voucher_list,
@@ -217,6 +222,24 @@ module.exports = {
       return helper.response(response, 200, 'Delete  Succes ', result)
     } catch (error) {
       return helper.response(response, 400, ' Bad request', error)
+    }
+  },
+  getdata: async (request, response) => {
+    try {
+      const result = await getDataModel
+      const result2 = await getDataModelProduct
+      dashboard = {
+        result,
+        result2
+      }
+      return helper.response(
+        response,
+        200,
+        'get Data history suscces full',
+        dashboard
+      )
+    } catch (error) {
+      return helper.response(response, 400, 'Bad Request', error)
     }
   }
 }

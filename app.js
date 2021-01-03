@@ -30,5 +30,5 @@ app.get('*', (request, response) => {
 })
 
 app.listen(3001, () => {
-  console.log('Express app is listening on port 3000')
+  console.log('Express app is listening on port 3001')
 })

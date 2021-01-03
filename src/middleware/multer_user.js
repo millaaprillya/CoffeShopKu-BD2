@@ -2,7 +2,7 @@ const multer = require('multer')
 const helper = require('../helper/response')
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, './uploads')
+    cb(null, 'uploads/user')
   },
   filename: function (req, file, cb) {
     console.log(file)
@@ -17,15 +17,14 @@ const fileFilter = (req, file, cb) => {
     cb(new Error('Extension File Must Be PNG or JPG'), false)
   }
 }
-// Point
-// membuat kondisi limit buat img png
-const limits = 2 * 1024 * 1024
 
+const maxSize = 1024 * 2 * 1024
 const upload = multer({
-  limits: { fileSize: limits },
-  storage: storage,
-  fileFilter
-}).single('product_image')
+  storage,
+  fileFilter,
+  limits: { fileSize: maxSize }
+}).single('user_img')
+
 const uploadFilter = (request, response, next) => {
   upload(request, response, function (err) {
     console.log(err)
