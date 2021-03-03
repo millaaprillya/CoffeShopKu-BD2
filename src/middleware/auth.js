@@ -4,7 +4,6 @@ const helper = require('../helper/response')
 module.exports = {
   authorization: (request, response, next) => {
     let token = request.headers.authorization
-    console.log(token)
     token = token.split(' ')[1]
     jwt.verify(token, 'RAHASIA', (error, result) => {
       if (

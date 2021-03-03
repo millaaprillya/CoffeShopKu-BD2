@@ -19,7 +19,19 @@ module.exports = {
       })
     })
   },
-  patchUsertModel: (id, setData) => {
+  getUserByKeyModel: (keys) => {
+    return new Promise((resolve, reject) => {
+      connection.query(
+        'SELECT * FROM user WHERE user_key = ?',
+        keys,
+        (error, result) => {
+          console.log(result)
+          !error ? resolve(result) : reject(new Error(error))
+        }
+      )
+    })
+  },
+  patchUsertModel: (setData, id) => {
     return new Promise((resolve, reject) => {
       connection.query(
         'UPDATE user SET ? WHERE user_id = ?',
@@ -27,12 +39,11 @@ module.exports = {
         (error, result) => {
           if (!error) {
             const newResult = {
-              product_id: id,
+              user_id: id,
               ...setData
             }
             resolve(newResult)
           } else {
-            console.log(error)
             reject(new Error(error))
           }
         }
@@ -58,9 +69,10 @@ module.exports = {
   loginCheckModel: (account) => {
     return new Promise((resolve, reject) => {
       connection.query(
-        'SELECT user_id, user_email, user_password ,user_role FROM user WHERE user_email = ?',
+        'SELECT user_id, user_email, user_password ,user_role  FROM user WHERE user_email = ?',
         account,
         (error, result) => {
+          console.log(error)
           !error ? resolve(result) : reject(new Error(error))
         }
       )

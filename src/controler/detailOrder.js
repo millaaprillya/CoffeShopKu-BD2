@@ -1,14 +1,4 @@
-const {
-  getOrderByhistory,
-  getDataOrderModel,
-  postDataOrderModel
-} = require('../model/detailOrder')
-const {
-  postHistoryModel,
-  patchHistoryModel,
-  getHistoryModelById
-} = require('../model/history')
-const { getProductByIdModel } = require('../model/product')
+const { getDataOrderModel } = require('../model/detailOrder')
 const helper = require('../helper/response')
 
 module.exports = {

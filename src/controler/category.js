@@ -1,21 +1,60 @@
 const {
   getCategoryModel,
-  getCategoryModelById,
   postCategoryModel,
   deleteCategoryModel,
-  getCategoryNameById
+  getCategoryNameById,
+  getProductCategory
 } = require('../model/category')
-const { getProductByIdModel } = require('../model/product')
-const {
-  getDataOrderModel,
-  postDataOrderModel
-} = require('../model/detailOrder')
-const { postHistoryModel, getHistoryModel } = require('../model/history')
+const { getProductCountModel } = require('../model/product')
 const helper = require('../helper/response')
 const redis = require('redis')
 const client = redis.createClient()
+const qs = require('querystring')
 
 module.exports = {
+  getProductBycategory: async (request, response) => {
+    try {
+      let { page, limit, search, sort } = request.query
+      if (!search) {
+        search = ''
+      }
+      if (!sort) {
+        sort = 'product_id ASC'
+      }
+      page = parseInt(page)
+      limit = parseInt(limit)
+      const totalData = await getProductCountModel()
+      const totalPage = Math.ceil(totalData / limit)
+      const offset = page * limit - limit
+      const prevLink =
+        page > 1
+          ? qs.stringify({ ...request.query, ...{ page: page - 1 } })
+          : null
+      const nextLink =
+        page < totalPage
+          ? qs.stringify({ ...request.query, ...{ page: page + 1 } })
+          : null
+      const pageInfo = {
+        page,
+        totalPage,
+        limit,
+        totalData,
+        nextLink: nextLink && `http://localhost:3000/product?${nextLink}`,
+        prevLink: prevLink && `http://localhost:3000/product?${prevLink}`
+      }
+      const result = await getProductCategory(limit, offset, sort, search)
+      console.log(result)
+      return helper.response(
+        response,
+        200,
+        'Success Get Product',
+        result,
+        pageInfo
+      )
+    } catch (error) {
+      return helper.response(response, 400, 'Bad Request', error)
+    }
+  },
   getCategoryIdName: async (request, response) => {
     try {
       const { id } = require.params
@@ -84,76 +123,6 @@ module.exports = {
       return helper.response(response, 200, `Delete ${id} Succes `, result)
     } catch (error) {
       return helper.response(response, 400, ' Bad request', error)
-    }
-  },
-  getOrder: async (request, response) => {
-    try {
-      const result = await getDataOrderModel()
-      return helper.response(response, 200, 'Success Get category', result)
-    } catch (error) {
-      return helper.response(response, 400, 'Bad Request', error)
-    }
-  },
-
-  postOrder: async (request, response) => {
-    try {
-      const resultRequest = []
-      const resultStruture = []
-      let totalProduct = 0
-      for (let i = 0; i < request.body.orders.length; i++) {
-        let { product_id, order_qty } = request.body.orders[i]
-        const product = await getProductByIdModel(product_id)
-        if (product[0] === undefined) {
-          return helper.response(response, 400, 'Produknya jatoh di jalan')
-        }
-        console.log(product[0].product_price)
-        totalProduct += order_qty * product[0].product_price
-      }
-      const setData = {
-        history_invoice: Math.floor(100000 + Math.random() * 900000),
-        history_subtotal: totalProduct,
-        history_created_at: new Date()
-      }
-      const historyResult = await postHistoryModel(setData)
-      resultRequest.push(setData)
-      for (let i = 0; i < request.body.orders.length; i++) {
-        let { product_id, order_qty } = request.body.orders[i]
-        const product = await getProductByIdModel(product_id)
-        console.log(product[0].product_price)
-        const SetDataOrderId = {
-          product_id,
-          history_id: historyResult.history_id,
-          product_price: product[0].product_price,
-          order_price: product[0].product_price * order_qty,
-          order_qty: order_qty,
-          order_total: totalProduct,
-          order_created_at: new Date()
-        }
-        await postDataOrderModel(SetDataOrderId)
-        resultStruture.push(SetDataOrderId)
-      }
-      return helper.response(
-        response,
-        200,
-        ' Success :)',
-        resultStruture,
-        resultRequest
-      )
-    } catch (error) {
-      return helper.response(response, 400, 'Bad Request', error)
-    }
-  },
-  getHistory: async (request, response) => {
-    try {
-      const result = await getHistoryModel
-      return helper.response(
-        response,
-        200,
-        'get Data history suscces full',
-        result
-      )
-    } catch (error) {
-      return helper.response(response, 400, 'Bad Request', error)
     }
   }
 }

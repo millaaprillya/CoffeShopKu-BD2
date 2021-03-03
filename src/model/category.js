@@ -8,6 +8,19 @@ module.exports = {
       })
     })
   },
+  getProductCategory: (limit, offset, sort, search) => {
+    console.log('ok')
+    return new Promise((resolve, reject) => {
+      connection.query(
+        `SELECT * FROM product INNER JOIN category ON product.category_id = category.category_id WHERE category_name LIKE '%${search}%' ORDER BY ${sort} LIMIT ? OFFSET ? `,
+        [limit, offset],
+        (error, result) => {
+          console.log(error)
+          !error ? resolve(result) : reject(new Error(error))
+        }
+      )
+    })
+  },
   getCategoryNameById: (id) => {
     return new Promise((resolve, reject) => {
       connection.query(

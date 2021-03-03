@@ -4,26 +4,34 @@ const {
   getProductByIdModel,
   postProductModel,
   patchProductModel,
-  deleteProductModel,
-  postVoucherModel,
-  getVoucherModel,
-  deleteVoucherModel
+  deleteProductModel
 } = require('../model/product')
-const { getDataModel, getDataModelProduct } = require('../model/dashboard')
+// const { getDataModel, getDataModelProduct } = require('../model/dashboard')
 const helper = require('../helper/response')
 const redis = require('redis')
 const client = redis.createClient()
 const fs = require('fs')
-const dashboard = require('../model/dashboard')
-
+const qs = require('querystring')
 module.exports = {
   getProduct: async (request, response) => {
     try {
-      let { page, limit } = request.query
+      let { page, limit, search, sort } = request.query
+      if (!search) {
+        search = ''
+      }
+      if (!sort) {
+        sort = 'product_id ASC'
+      }
+      if (!limit) {
+        limit = 8
+      }
+      if (!page) {
+        page = 1
+      }
       page = parseInt(page)
       limit = parseInt(limit)
-      // search = ''
-      // sort = ''
+
+      console.log(search)
       const totalData = await getProductCountModel()
       const totalPage = Math.ceil(totalData / limit)
       const offset = page * limit - limit
@@ -35,8 +43,6 @@ module.exports = {
         page < totalPage
           ? qs.stringify({ ...request.query, ...{ page: page + 1 } })
           : null
-      console.log(request.query)
-      console.log(qs.stringify(request.query))
       const pageInfo = {
         page,
         totalPage,
@@ -45,18 +51,25 @@ module.exports = {
         nextLink: nextLink && `http://localhost:3000/product?${nextLink}`,
         prevLink: prevLink && `http://localhost:3000/product?${prevLink}`
       }
-      const result = await getProductModel(limit, offset)
+      const result = await getProductModel(limit, offset, sort, search)
+
       const newData = {
         result,
         pageInfo
       }
       console.log(newData)
-      client.set(
-        `getproduct: ${JSON.stringify(request.query)}`,
-        3600,
-        JSON.stringify(newData)
+      // client.set(
+      //   `getproduct: ${JSON.stringify(request.query)}`,
+      //   3600,
+      //   JSON.stringify(newData)
+      // )
+      return helper.response(
+        response,
+        200,
+        'Success Get Product',
+        result,
+        pageInfo
       )
-      return helper.response(response, 200, 'Success Get Product', newData)
     } catch (error) {
       return helper.response(response, 400, 'Bad Request', error)
     }
@@ -89,6 +102,7 @@ module.exports = {
         product_price,
         product_size,
         product_list,
+        product_stok,
         product_status
       } = request.body
       // kasih validasi disini
@@ -98,8 +112,56 @@ module.exports = {
         product_price,
         product_size,
         product_list,
+        product_stok,
         product_image: request.file === undefined ? '' : request.file.filename,
         product_created_at: new Date(),
+        product_status
+      }
+      if (setData.category_id === '') {
+        return helper.response(response, 400, 'Please select category')
+      } else if (setData.product_name === '') {
+        return helper.response(response, 400, 'Product name cannot be empty')
+      } else if (setData.product_price === '') {
+        return helper.response(response, 400, 'Product price cannot be empty')
+      } else if (setData.product_size === '') {
+        return helper.response(response, 400, 'Product Insert size product')
+      } else if (setData.product_list === '') {
+        return helper.response(response, 400, 'Product Insert size product')
+      } else if (setData.product_status === '') {
+        return helper.response(response, 400, 'Product select status')
+      } else if (setData.product_image === '') {
+        return helper.response(
+          response,
+          400,
+          'Product select image cannot to be empty'
+        )
+      } else {
+        const result = await postProductModel(setData)
+        return helper.response(response, 200, 'Success Post Product', result)
+      }
+    } catch (error) {
+      return helper.response(response, 400, 'Bad Request', error)
+    }
+  },
+  patchProduct: async (request, response) => {
+    try {
+      const { id } = request.params
+      const {
+        category_id,
+        product_name,
+        product_price,
+        product_size,
+        product_list,
+        product_status
+      } = request.body
+      const setData = {
+        category_id,
+        product_name,
+        product_price,
+        product_image: request.file === undefined ? '' : request.file.filename,
+        product_size,
+        product_list,
+        product_updated_at: new Date(),
         product_status
       }
       console.log(setData)
@@ -110,136 +172,64 @@ module.exports = {
       } else if (setData.product_price === '') {
         return helper.response(response, 400, 'Product price cannot be empty')
       } else if (setData.product_size === '') {
-        return helper.response(response, 400, 'plis Insert size product')
+        return helper.response(response, 400, 'Product Insert size product')
       } else if (setData.product_list === '') {
-        return helper.response(response, 400, 'plis Insert size product')
+        return helper.response(response, 400, 'Product Insert size product')
       } else if (setData.product_status === '') {
-        return helper.response(response, 400, 'Please select status')
+        return helper.response(response, 400, 'Product select status')
+      } else if (setData.product_image === '') {
+        return helper.response(
+          response,
+          400,
+          'Product select image cannot to be empty'
+        )
+      }
+
+      const checkId = await getProductByIdModel(id)
+      if (checkId.length > 0) {
+        fs.unlink(
+          `./uploads/product/${checkId[0].product_image}`,
+          async (error) => {
+            if (error) {
+              throw error
+            } else {
+              const result = await patchProductModel(id, setData)
+              return helper.response(response, 201, 'Product Updated', result)
+            }
+          }
+        )
       } else {
-        const result = await postProductModel(setData)
-        return helper.response(response, 200, 'Success Post Product', result)
+        return helper.response(response, 404, `Product By Id : ${id} Not Found`)
       }
     } catch (error) {
       return helper.response(response, 400, 'Bad Request', error)
-    }
-  },
-  patchProduct: async (request, response) => {
-    const { id } = request.params
-    try {
-      const {
-        category_id,
-        product_name,
-        product_price,
-        product_size,
-        product_image,
-        product_list,
-        product_status
-      } = request.body
-      console.log(request.body.product_name)
-      const setData = {
-        category_id,
-        product_name,
-        product_price,
-        product_size,
-        product_list,
-        product_image: request.file === undefined ? '' : request.file.filename,
-        product_created_at: new Date(),
-        product_status
-      }
-      const checkId = await getProductByIdModel(id)
-      fs.unlink(`uploads/${checkId[0].product_image}`, async (error) => {
-        if (error) return helper.response(response, 400, 'delete gagal')
-      })
-      if (checkId.length > 0) {
-        const result = await patchProductModel(id, setData)
-        return helper.response(response, 200, 'DataUpdated', result)
-      } else {
-        return helper.response(response, 404, `Data Not Found By Id ${id}`)
-      }
-    } catch (error) {
-      return helper.response(response, 400, 'Data Failed Update', error)
     }
   },
   deleteProduct: async (request, response) => {
     try {
       const { id } = request.params
-      const productId = await getProductByIdModel(id)
-      console.log(productId)
-      fs.unlink(`./uploads/${productId[0].product_image}`, async (error) => {
-        if (error) return helper.response(response, 400, 'deleted gagal')
-      })
-      const result = await deleteProductModel(id)
-      return helper.response(
-        response,
-        200,
-        `Delete Product ${id} Succes `,
-        result
-      )
-    } catch (error) {
-      return helper.response(response, 400, ' Bad request', error)
-    }
-  },
-  postVoucher: async (request, response) => {
-    try {
-      const {
-        voucher_name,
-        voucher_diskon,
-        voucher_list,
-        voucher_status
-      } = request.body
-
-      const setData = {
-        voucher_name,
-        voucher_diskon,
-        voucher_list,
-        voucher_created_at: new Date(),
-        voucher_status
+      const checkId = await getProductByIdModel(id)
+      if (!checkId) {
+        return helper.response(response, 404, `Product id ${id} empty`)
       }
-      const result = await postVoucherModel(setData)
-      return helper.response(
-        response,
-        200,
-        'Post voucher Product Succes :)',
-
-        result
-      )
-    } catch (error) {
-      return helper.response(response, 400, 'Failed to post :( ', error)
-    }
-  },
-  getVoucher: async (request, response) => {
-    try {
-      const result = await getVoucherModel()
-      return helper.response(response, 400, 'ok', result)
-    } catch (error) {
-      return helper.response(response, 400, 'Bad Request', error)
-    }
-  },
-  deleteVoucher: async (request, response) => {
-    try {
-      const { id } = request.params
-      const result = await deleteVoucherModel(id)
-      return helper.response(response, 200, 'Delete  Succes ', result)
-    } catch (error) {
-      return helper.response(response, 400, ' Bad request', error)
-    }
-  },
-  getdata: async (request, response) => {
-    try {
-      const result = await getDataModel
-      const result2 = await getDataModelProduct
-      dashboard = {
-        result,
-        result2
+      if (checkId.length > 0) {
+        fs.unlink(
+          `./uploads/product/${checkId[0].product_image}`,
+          async (error) => {
+            if (error) {
+              throw error
+            } else {
+              const result = await deleteProductModel(id)
+              return helper.response(response, 201, 'Product Deleted', result)
+            }
+          }
+        )
+      } else {
+        return helper.response(response, 404, `Product By Id : ${id} Not Found`)
       }
-      return helper.response(
-        response,
-        200,
-        'get Data history suscces full',
-        dashboard
-      )
     } catch (error) {
-      return helper.response(response, 400, 'Bad Request', error)
+      console.log()
+      return helper.response(response, 400, ' Bad request', error)
     }
   }
 }

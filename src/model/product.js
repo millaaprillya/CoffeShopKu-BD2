@@ -1,12 +1,25 @@
 const connection = require('../config/mysql')
 
 module.exports = {
-  getProductModel: (limit, offset, search, sort) => {
+  getProductModel: (limit, offset, sort, search) => {
     return new Promise((resolve, reject) => {
       connection.query(
-        'SELECT * FROM product INNER JOIN category ON product.category_id = category.category_id  LIMIT ? OFFSET ?  ',
+        `SELECT * FROM product INNER JOIN category ON product.category_id = category.category_id WHERE product_name LIKE '%${search}%' ORDER BY ${sort} LIMIT ? OFFSET ?  `,
         [limit, offset],
         (error, result) => {
+          !error ? resolve(result) : reject(new Error(error))
+        }
+      )
+    })
+  },
+  getProductCategory: (limit, offset, sort, search) => {
+    console.log('ok')
+    return new Promise((resolve, reject) => {
+      connection.query(
+        `SELECT * FROM product INNER JOIN category ON product.category_id = category.category_id WHERE category_name LIKE '%${search}%' ORDER BY ${sort} LIMIT ? OFFSET ? `,
+        [limit, offset],
+        (error, result) => {
+          console.log(error)
           !error ? resolve(result) : reject(new Error(error))
         }
       )
@@ -84,54 +97,11 @@ module.exports = {
             }
             resolve(newResult)
           } else {
+            console.log(error)
             reject(new Error(error))
           }
         }
       )
-    })
-  },
-  postVoucherModel: (setData) => {
-    return new Promise((resolve, reject) => {
-      connection.query(
-        'INSERT INTO voucher SET ?',
-        setData,
-        (error, result) => {
-          if (!error) {
-            const newResult = {
-              voucher_id: result.insertId,
-              ...setData
-            }
-            resolve(newResult)
-          } else {
-            reject(new Error(error))
-          }
-        }
-      )
-    })
-  },
-  deleteVoucherModel: (id) => {
-    return new Promise((resolve, reject) => {
-      connection.query(
-        'DELETE FROM voucher WHERE voucher_id = ?',
-        id,
-        (error, result) => {
-          if (!error) {
-            const newResult = {
-              id: id
-            }
-            resolve(newResult)
-          } else {
-            reject(new Error(error))
-          }
-        }
-      )
-    })
-  },
-  getVoucherModel: () => {
-    return new Promise((resolve, reject) => {
-      connection.query('SELECT * FROM voucher ', (error, result) => {
-        !error ? resolve(result) : reject(new Error(error))
-      })
     })
   }
 }

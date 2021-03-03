@@ -8,10 +8,17 @@ module.exports = {
       })
     })
   },
+  getOrderBy_userid: () => {
+    return new Promise((resolve, reject) => {
+      connection.query('SELECT * FROM orders ', (error, result) => {
+        !error ? resolve(result) : reject(new Error(error))
+      })
+    })
+  },
   getDataOrderBy_id: (id) => {
     return new Promise((resolve, reject) => {
       connection.query(
-        'SELECT product_price FROM WHERE product_id = ?',
+        'SELECT * FROM orders WHERE user_id = ?',
         id,
         (error, result) => {
           !error ? resolve(result) : reject(new Error(error))

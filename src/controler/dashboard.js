@@ -1,20 +1,19 @@
-const { getDataModel, getDataModelProduct } = require('../model/dashboard')
+const { incomeHistory, getDataModelProduct } = require('../model/dashboard')
 const helper = require('../helper/response')
 
 module.exports = {
-  getData: async (request, response) => {
+  getTotalIncome: async (request, response) => {
     try {
-      const result = await getDataModel
-      const result2 = await getDataModelProduct
-      return helper.response(
-        response,
-        200,
-        'get Data history suscces full',
-        result,
-        result2
-      )
+      const totalncome = await incomeHistory()
+      const InComeToday = await getDataModelProduct()
+      const Data = {
+        inComeToday: InComeToday,
+        totalAll: totalncome
+      }
+      return helper.response(response, 200, 'Dashboard', Data)
     } catch (error) {
-      return helper.response(response, 400, 'Bad Request', error)
+      console.log(error)
+      return helper.response(response, 404, 'Bad Request', error)
     }
   }
 }
